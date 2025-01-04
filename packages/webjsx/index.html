@@ -2,36 +2,229 @@
 <html>
   <head>
     <title>WebJSX Benchmarks</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 40px);
+      }
+      .left-pane {
+        flex: 0 0 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .right-pane {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .completed-message {
+        font-size: 24px;
+        color: #4caf50;
+      }
+      .initial-message {
+        font-size: 24px;
+        color: #757575;
+      }
+      .running-message {
+        font-size: 24px;
+        color: #2196f3;
+      }
+      #controls {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+      }
+      .control-group {
+        margin-bottom: 15px;
+      }
+      .control-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      input[type="number"] {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      button:hover {
+        background: #1976d2;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+        background: #90caf9;
+      }
+      #results {
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+      #results pre {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin: 0;
+        color: #666;
+      }
+      .current-test {
+        font-size: 18px;
+        color: #2196f3;
+        margin: 10px 0;
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <div id="results"></div>
-    <div id="controls">
-      <button id="run-tests">Run All Tests</button>
+    <div class="container">
+      <div class="left-pane">
+        <div id="controls">
+          <div class="control-group">
+            <div class="control-row">
+              <label for="duration">Duration (seconds per test):</label>
+            </div>
+            <div class="control-row">
+              <input
+                type="number"
+                id="duration"
+                value="2"
+                min="0.1"
+                step="0.1"
+              />
+            </div>
+          </div>
+          <div class="control-group">
+            <button id="run-tests">Run All Tests</button>
+          </div>
+        </div>
+        <div id="results"><pre>No results to show</pre></div>
+      </div>
+      <div class="right-pane">
+        <div id="app">
+          <div class="initial-message">Not started</div>
+        </div>
+      </div>
     </div>
     <script type="module">
       import { RenderTest } from "./src/tests/render.test.tsx";
       import { UpdatesTest } from "./src/tests/updates.test.tsx";
       import { ComponentsTest } from "./src/tests/components.test.tsx";
-      import { displayResults } from "./src/shared/setup.ts";
+
+      // Store for raw benchmark results
+      window.benchmarkResults = {
+        allResults: [],
+        latestResults: null,
+      };
+
+      const resultsContainer = document.querySelector("#results pre");
+      const runButton = document.getElementById("run-tests");
+      const appContainer = document.getElementById("app");
+
+      function appendResult(result, elapsed) {
+        const resultText = `Test: ${result.name}
+- Operations/sec: ${result.hz.toFixed(2)}
+- Average time: ${(1000 / result.hz).toFixed(3)}ms
+- Test duration: ${elapsed.toFixed(2)}s
+- Deviation: ±${result.stats.deviation.toFixed(2)}%
+
+`;
+        if (resultsContainer.textContent === "No results to show") {
+          resultsContainer.textContent = resultText;
+        } else {
+          resultsContainer.textContent += resultText;
+        }
+        resultsContainer.scrollTop = resultsContainer.scrollHeight;
+
+        // Store the result
+        window.benchmarkResults.allResults.push(result);
+        window.benchmarkResults.latestResults = result;
+      }
+
+      function updateCurrentTest(name) {
+        appContainer.innerHTML = `
+          <div class="running-message">
+            Running test:<br>
+            ${name}
+          </div>
+        `;
+      }
+
+      async function runAllTests() {
+        const duration =
+          parseFloat(document.getElementById("duration").value) || 2;
+        const startTime = performance.now();
+
+        try {
+          window.benchmarkResults.allResults = [];
+          resultsContainer.textContent = "No results to show";
+
+          for (const suite of suites) {
+            console.log("Running suite:", suite.name);
+            const generator = suite.run({
+              duration,
+              onTestStart: (testName) => {
+                updateCurrentTest(testName);
+              },
+            });
+
+            for await (const result of generator) {
+              const elapsed = (performance.now() - startTime) / 1000;
+              appendResult(result, elapsed);
+              // Let the UI update
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+          }
+
+          const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+          appContainer.innerHTML = `<div class="completed-message">✓ Completed in ${totalTime}s</div>`;
+        } catch (error) {
+          console.error("Test error:", error);
+          appContainer.innerHTML = `
+            <div style="color: #f44336; font-size: 24px;">
+              ✗ Error occurred
+            </div>
+          `;
+          resultsContainer.textContent += `\nError: ${error.message}\n`;
+        } finally {
+          runButton.textContent = "Run All Tests";
+          runButton.disabled = false;
+        }
+      }
+
+      runButton.addEventListener("click", () => {
+        runButton.disabled = true;
+        runButton.textContent = "Running...";
+        runAllTests();
+      });
 
       const suites = [
         new RenderTest(),
         new UpdatesTest(),
         new ComponentsTest(),
       ];
-
-      document
-        .getElementById("run-tests")
-        .addEventListener("click", async () => {
-          const allResults = [];
-          for (const suite of suites) {
-            console.log("Running suite:", suite.name);
-            const results = await suite.run();
-            allResults.push(...results);
-          }
-          displayResults(allResults);
-        });
     </script>
   </body>
 </html>

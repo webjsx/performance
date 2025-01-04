@@ -1,14 +1,17 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
+import { BenchmarkOptions } from "./types.js";
 
 export async function runProductionBenchmark(
-  options: { cwd: string } = { cwd: process.cwd() }
+  options: BenchmarkOptions = { duration: 2, cwd: process.cwd() }
 ) {
+  const { duration = 2, cwd = process.cwd() } = options;
+
   // First build the production version
   const build = spawn("npm", ["run", "build"], {
     stdio: "inherit",
-    cwd: options.cwd,
+    cwd,
   });
 
   await new Promise((resolve, reject) => {
@@ -24,7 +27,7 @@ export async function runProductionBenchmark(
   // Start the preview server
   const server = spawn("npm", ["run", "preview"], {
     stdio: "ignore",
-    cwd: options.cwd,
+    cwd,
   });
 
   // Ensure server cleanup on process termination
@@ -47,6 +50,15 @@ export async function runProductionBenchmark(
 
     // Navigate to the local test page
     await page.goto("http://localhost:4173");
+
+    // Set duration in the page
+    await page.$eval(
+      "#duration",
+      (el, dur) => {
+        (el as HTMLInputElement).value = dur.toString();
+      },
+      duration
+    );
 
     // Set up console log forwarding
     page.on("console", (msg) => console.log(msg.text()));
@@ -73,7 +85,13 @@ export async function runProductionBenchmark(
 if (import.meta.url.startsWith("file:")) {
   const scriptPath = fileURLToPath(import.meta.url);
   if (scriptPath === process.argv[1]) {
-    runProductionBenchmark().catch((error) => {
+    const args = process.argv.slice(2);
+    const durationArg = args.find(
+      (arg) => arg.startsWith("--duration=") || arg.startsWith("-d=")
+    );
+    const duration = durationArg ? parseFloat(durationArg.split("=")[1]) : 2;
+
+    runProductionBenchmark({ duration }).catch((error) => {
       console.error(error);
       process.exit(1);
     });

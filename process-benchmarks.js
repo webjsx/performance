@@ -253,11 +253,25 @@ function generateHtml(reactResults, webjsxResults) {
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const outputArg = args.findIndex((arg) => arg === "--out");
   const outputPath =
-    process.argv[2] || join(os.tmpdir(), `benchmark-${Date.now()}.html`);
+    outputArg !== -1
+      ? args[outputArg + 1]
+      : join(os.tmpdir(), `benchmark-${Date.now()}.html`);
+
+  const durationArg =
+    args.find((arg) => arg.startsWith("--duration="))?.split("=")[1] || "3";
+  const duration = parseFloat(durationArg);
+
+  console.log(`Running benchmarks with duration: ${duration}s`);
 
   console.log("Running React benchmarks...");
-  const reactOutput = await runCommand("npm", ["run", "react-tests"]);
+  const reactOutput = await runCommand("npm", [
+    "run",
+    "react-tests",
+    `--duration=${duration}`,
+  ]);
   console.log("\nParsing React results...");
   const reactResults = parseResults(reactOutput);
   console.log("\nReact Benchmark Results:");
@@ -271,7 +285,11 @@ async function main() {
   });
 
   console.log("\nRunning WebJSX benchmarks...");
-  const webjsxOutput = await runCommand("npm", ["run", "webjsx-tests"]);
+  const webjsxOutput = await runCommand("npm", [
+    "run",
+    "webjsx-tests",
+    `--duration=${duration}`,
+  ]);
   console.log("\nParsing WebJSX results...");
   const webjsxResults = parseResults(webjsxOutput);
   console.log("\nWebJSX Benchmark Results:");
@@ -287,7 +305,7 @@ async function main() {
   const html = generateHtml(reactResults, webjsxResults);
   await fs.writeFile(outputPath, html);
 
-  if (!process.argv[2]) {
+  if (!args.includes("--out")) {
     console.log("Opening results in browser...");
     await open(outputPath);
   } else {

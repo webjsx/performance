@@ -63,6 +63,7 @@ export const benchmarkStyles = `
     border: 1px solid #d1d5db;
     border-radius: 4px;
     font-size: 14px;
+    box-sizing: border-box;
   }
 
   button {

@@ -30,7 +30,7 @@ async function runCommand(command, args, cwd = process.cwd()) {
   });
 }
 
-async function runBrowserBenchmarks(framework, duration, testFilter) {
+async function runBrowserBenchmarks(framework, port, duration, testFilter) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   const results = [];
@@ -45,10 +45,7 @@ async function runBrowserBenchmarks(framework, duration, testFilter) {
   });
 
   try {
-    // Navigate to the appropriate URL based on framework
-    const url =
-      framework === "react" ? "http://localhost:4173" : "http://localhost:4174";
-    await page.goto(url);
+    await page.goto(`http://localhost:${port}`);
 
     // Set duration in the page
     await page.$eval(
@@ -82,7 +79,10 @@ async function runBrowserBenchmarks(framework, duration, testFilter) {
           seenTests.add(result.name);
 
           if (!testFilter || result.name.includes(testFilter)) {
-            results.push(result);
+            results.push({
+              ...result,
+              framework,
+            });
             // Format numbers with null checks
             const hz = result.hz ? result.hz.toFixed(2) : "N/A";
             const mean = result.stats?.mean
@@ -118,28 +118,64 @@ async function runBrowserBenchmarks(framework, duration, testFilter) {
   return results;
 }
 
-function generateHtml(reactResults, webjsxResults) {
-  const allTestNames = new Set([
-    ...reactResults.map((r) => r.name),
-    ...webjsxResults.map((w) => w.name),
-  ]);
+function generateHtml(results) {
+  // Group results by test name
+  const testGroups = results.reduce((acc, result) => {
+    if (!acc[result.name]) {
+      acc[result.name] = [];
+    }
+    acc[result.name].push(result);
+    return acc;
+  }, {});
 
-  const rows = Array.from(allTestNames).map((testName) => {
-    const react = reactResults.find((r) => r.name === testName) || {};
-    const webjsx = webjsxResults.find((w) => w.name === testName) || {};
+  // Generate rows for each test
+  const rows = Object.entries(testGroups)
+    .map(([testName, testResults]) => {
+      const rowHtml = testResults
+        .map(
+          (result) => `
+      <td>${result.hz?.toFixed(2) || "-"}</td>
+      <td class="time">${result.stats?.mean?.toFixed(3) || "-"}</td>
+    `
+        )
+        .join("");
 
-    const comparison =
-      react.hz && webjsx.hz ? (webjsx.hz / react.hz - 1) * 100 : null;
+      // Calculate comparisons if we have multiple frameworks
+      let comparisonHtml = "";
+      if (testResults.length > 1) {
+        const baseResult = testResults[0];
+        const comparison =
+          testResults[1].hz && baseResult.hz
+            ? ((testResults[1].hz / baseResult.hz - 1) * 100).toFixed(1)
+            : "-";
 
-    return {
-      testName,
-      reactOps: react.hz?.toFixed(2) || "-",
-      reactTime: react.stats?.mean?.toFixed(3) || "-",
-      webjsxOps: webjsx.hz?.toFixed(2) || "-",
-      webjsxTime: webjsx.stats?.mean?.toFixed(3) || "-",
-      comparison: comparison !== null ? comparison.toFixed(1) : "-",
-    };
-  });
+        comparisonHtml = `
+        <td class="${parseFloat(comparison) > 0 ? "positive" : "negative"}">
+          ${comparison === "-" ? "-" : comparison + "%"}
+        </td>
+      `;
+      }
+
+      return `
+      <tr>
+        <td>${testName}</td>
+        ${rowHtml}
+        ${comparisonHtml}
+      </tr>
+    `;
+    })
+    .join("");
+
+  // Get unique frameworks for header
+  const frameworks = [...new Set(results.map((r) => r.framework))];
+  const headerCells = frameworks
+    .map(
+      (framework) => `
+    <th>${framework} (ops/sec)</th>
+    <th>${framework} (ms)</th>
+  `
+    )
+    .join("");
 
   return `
 <!DOCTYPE html>
@@ -197,39 +233,19 @@ function generateHtml(reactResults, webjsxResults) {
 <body>
     <div class="header">
         <h1>Framework Performance Comparison</h1>
-        <p>React vs WebJSX Performance Benchmark Results</p>
+        <p>Performance Benchmark Results</p>
     </div>
     
     <table>
         <thead>
             <tr>
                 <th>Test</th>
-                <th>React (ops/sec)</th>
-                <th>React (ms)</th>
-                <th>WebJSX (ops/sec)</th>
-                <th>WebJSX (ms)</th>
-                <th>Difference</th>
+                ${headerCells}
+                ${frameworks.length > 1 ? "<th>Difference</th>" : ""}
             </tr>
         </thead>
         <tbody>
-            ${rows
-              .map(
-                (row) => `
-                <tr>
-                    <td>${row.testName}</td>
-                    <td>${row.reactOps}</td>
-                    <td class="time">${row.reactTime}</td>
-                    <td>${row.webjsxOps}</td>
-                    <td class="time">${row.webjsxTime}</td>
-                    <td class="${
-                      parseFloat(row.comparison) > 0 ? "positive" : "negative"
-                    }">
-                        ${row.comparison === "-" ? "-" : row.comparison + "%"}
-                    </td>
-                </tr>
-            `
-              )
-              .join("")}
+            ${rows}
         </tbody>
     </table>
     <p><small>Generated on ${new Date().toLocaleString()}</small></p>
@@ -266,6 +282,16 @@ function generateHtml(reactResults, webjsxResults) {
 </html>`;
 }
 
+// Framework configuration
+const FRAMEWORKS = {
+  react: {
+    port: 4173,
+  },
+  webjsx: {
+    port: 4174,
+  },
+};
+
 async function main() {
   const args = process.argv.slice(2);
   const outputArg = args.findIndex((arg) => arg === "--out");
@@ -274,7 +300,6 @@ async function main() {
       ? args[outputArg + 1]
       : join(os.tmpdir(), `benchmark-${Date.now()}.html`);
 
-  // Fix: Change how we parse framework argument to handle both formats
   const frameworkArg = args.find(
     (arg) =>
       arg.startsWith("--framework=") || arg === "-f" || arg === "--framework"
@@ -285,7 +310,6 @@ async function main() {
       : args[args.indexOf(frameworkArg) + 1]
     : undefined;
 
-  // Fix: Change how we parse test argument to handle both formats
   const testArg = args.find(
     (arg) => arg.startsWith("--test=") || arg === "-t" || arg === "--test"
   );
@@ -304,22 +328,28 @@ async function main() {
     console.log(`Test filter: ${testFilter}`);
   }
 
-  let reactResults = [];
-  let webjsxResults = [];
+  let allResults = [];
 
-  // Only run React if specifically requested or if no framework specified
-  if (!framework || framework === "react") {
-    console.log("Running React benchmarks...");
-    reactResults = await runBrowserBenchmarks("react", duration, testFilter);
+  // Run benchmarks for selected or all frameworks
+  const frameworksToRun = framework ? [framework] : Object.keys(FRAMEWORKS);
+
+  for (const fw of frameworksToRun) {
+    if (!FRAMEWORKS[fw]) {
+      console.error(`Unknown framework: ${fw}`);
+      continue;
+    }
+
+    console.log(`\nRunning ${fw} benchmarks...`);
+    const results = await runBrowserBenchmarks(
+      fw,
+      FRAMEWORKS[fw].port,
+      duration,
+      testFilter
+    );
+    allResults = allResults.concat(results);
   }
 
-  // Only run WebJSX if specifically requested or if no framework specified
-  if (!framework || framework === "webjsx") {
-    console.log("\nRunning WebJSX benchmarks...");
-    webjsxResults = await runBrowserBenchmarks("webjsx", duration, testFilter);
-  }
-
-  const html = generateHtml(reactResults, webjsxResults);
+  const html = generateHtml(allResults);
   await fs.writeFile(outputPath, html);
 
   if (!args.includes("--out")) {

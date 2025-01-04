@@ -1,29 +1,10 @@
-import puppeteer from "puppeteer";
+import { runProductionBenchmark } from "bench-utils/dist/runner.js";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
-async function runBrowserBenchmarks() {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-  // Navigate to the local test page
-  await page.goto("http://localhost:8080");
-
-  // Set up console log forwarding
-  page.on("console", (msg) => console.log(msg.text()));
-
-  // Click the run tests button and wait for results
-  await page.click("#run-tests");
-
-  // Wait for results to appear
-  await page.waitForSelector("#results pre");
-
-  // Get the results
-  const results = await page.$eval("#results pre", (el) => el.textContent);
-  console.log(results);
-
-  await browser.close();
-}
-
-runBrowserBenchmarks().catch((error) => {
+runProductionBenchmark({ cwd: dirname(__dirname) }).catch((error: unknown) => {
   console.error(error);
   process.exit(1);
 });

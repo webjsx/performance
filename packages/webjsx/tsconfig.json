@@ -8,10 +8,13 @@
     "declaration": true,
     "types": ["benchmark", "node"],
     "typeRoots": ["../../node_modules/@types", "./node_modules/@types"],
+    "paths": {
+      "bench-utils/*": ["../bench-utils/*"]
+    },
     "rootDir": "./src",
     "rootDirs": ["./src"],
     "composite": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

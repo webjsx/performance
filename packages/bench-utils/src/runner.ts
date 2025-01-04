@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
-import puppeteer from "puppeteer";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import puppeteer from "puppeteer";
 
 export async function runProductionBenchmark(
   options: { cwd: string } = { cwd: process.cwd() }
@@ -71,9 +70,12 @@ export async function runProductionBenchmark(
   }
 }
 
-if (import.meta.url === fileURLToPath(process.argv[1])) {
-  runProductionBenchmark().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+if (import.meta.url.startsWith("file:")) {
+  const scriptPath = fileURLToPath(import.meta.url);
+  if (scriptPath === process.argv[1]) {
+    runProductionBenchmark().catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+  }
 }

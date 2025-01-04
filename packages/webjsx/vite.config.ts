@@ -10,16 +10,18 @@ export default defineConfig({
       },
     },
   },
-  server: {
-    port: 8080,
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "webjsx",
+  },
+  preview: {
+    port: 4173,
   },
   resolve: {
     alias: {
-      webjsx: resolve(__dirname, "../../node_modules/webjsx/dist/index.js"),
-      "webjsx/jsx-runtime": resolve(
-        __dirname,
-        "../../node_modules/webjsx/dist/jsx-runtime.js"
-      ),
+      webjsx: "webjsx",
+      "webjsx/jsx-runtime": "webjsx/jsx-runtime.js",
+      "webjsx/jsx-dev-runtime": "webjsx/jsx-dev-runtime.js",
     },
   },
 });

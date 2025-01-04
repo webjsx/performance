@@ -32,10 +32,6 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-# Ensure everything is built first
-echo "Building packages..."
-npm run build
-
 # Start servers based on framework filter
 if [ -z "$FRAMEWORK" ] || [ "$FRAMEWORK" = "react" ]; then
   (cd packages/react && npm run preview) &
@@ -53,7 +49,7 @@ sleep 2
 # Run the Node.js script with all parameters
 ARGS=""
 [ -n "$FRAMEWORK" ] && ARGS="$ARGS --framework $FRAMEWORK"
-[ -n "$TEST" ] && ARGS="$ARGS --test \"$TEST\""
+[ -n "$TEST" ] && ARGS="$ARGS --test $TEST"
 [ -n "$OUT_PATH" ] && ARGS="$ARGS --out \"$OUT_PATH\""
 [ -n "$DURATION" ] && ARGS="$ARGS --duration=$DURATION"
 

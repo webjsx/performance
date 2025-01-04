@@ -172,6 +172,7 @@ export function setupBenchmarkUI() {
         (document.getElementById("duration") as HTMLInputElement).value
       ) || 2;
     const startTime = performance.now();
+    const testFilter = (window as any).testFilter;
 
     try {
       window.benchmarkResults.allResults = [];
@@ -181,6 +182,11 @@ export function setupBenchmarkUI() {
         console.log("Running suite:", suite.name);
 
         for await (const testCase of suite.getAllTests()) {
+          // Skip tests that don't match the filter
+          if (testFilter && !testCase.name.includes(testFilter)) {
+            continue;
+          }
+
           const result = suite.runTest(testCase, {
             duration,
             onTestStart: (testName: string) => {

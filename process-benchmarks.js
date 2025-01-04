@@ -284,26 +284,36 @@ async function main() {
       : args[args.indexOf(frameworkArg) + 1]
     : undefined;
 
-  const testArg = args.find((arg) => arg.startsWith("--test="));
-  const testFilter = testArg ? testArg.split("=")[1] : undefined;
+  // Fix: Change how we parse test argument to handle both formats
+  const testArg = args.find(
+    (arg) => arg.startsWith("--test=") || arg === "-t" || arg === "--test"
+  );
+  const testFilter = testArg
+    ? testArg.includes("=")
+      ? testArg.split("=")[1]
+      : args[args.indexOf(testArg) + 1]
+    : undefined;
 
   const durationArg = args.find((arg) => arg.startsWith("--duration="));
   const duration = durationArg ? parseFloat(durationArg.split("=")[1]) : 3;
 
   console.log(`Running benchmarks with duration: ${duration}s`);
   console.log(`Selected framework: ${framework || "all"}`);
+  if (testFilter) {
+    console.log(`Test filter: ${testFilter}`);
+  }
 
   let reactResults = [];
   let webjsxResults = [];
 
   // Only run React if specifically requested or if no framework specified
-  if (framework === "react") {
+  if (!framework || framework === "react") {
     console.log("Running React benchmarks...");
     reactResults = await runBrowserBenchmarks("react", duration, testFilter);
   }
 
   // Only run WebJSX if specifically requested or if no framework specified
-  if (framework === "webjsx") {
+  if (!framework || framework === "webjsx") {
     console.log("\nRunning WebJSX benchmarks...");
     webjsxResults = await runBrowserBenchmarks("webjsx", duration, testFilter);
   }

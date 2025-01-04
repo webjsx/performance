@@ -4,6 +4,29 @@
 DURATION=3
 FRAMEWORK=""
 TEST=""
+PIDS=()
+
+# Function to cleanup processes more aggressively
+cleanup() {
+  echo "Cleaning up processes..."
+
+  # Kill all running vite processes
+  pkill -f "vite"
+
+  # Kill our tracked processes and their children
+  for pid in "${PIDS[@]}"; do
+    # Kill child processes first
+    pkill -P $pid 2>/dev/null
+    # Kill the parent process
+    kill -TERM $pid 2>/dev/null
+  done
+
+  # Final sweep for any remaining vite processes
+  pkill -9 -f "vite" 2>/dev/null
+}
+
+# Set up trap for script termination
+trap cleanup EXIT INT TERM
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -32,15 +55,21 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
+# Kill any existing vite processes before starting
+pkill -f "vite" 2>/dev/null
+sleep 1
+
 # Start servers based on framework filter
 if [ -z "$FRAMEWORK" ] || [ "$FRAMEWORK" = "react" ]; then
   (cd packages/react && npm run preview) &
-  REACT_PID=$!
+  PIDS+=($!)
+  REACT_PID=${PIDS[-1]}
 fi
 
 if [ -z "$FRAMEWORK" ] || [ "$FRAMEWORK" = "webjsx" ]; then
   (cd packages/webjsx && npm run preview -- --port 4174) &
-  WEBJSX_PID=$!
+  PIDS+=($!)
+  WEBJSX_PID=${PIDS[-1]}
 fi
 
 # Wait for servers to start
@@ -55,7 +84,3 @@ ARGS=""
 
 # Use eval to properly handle the quoted arguments
 eval "node process-benchmarks.js $ARGS"
-
-# Kill any running servers
-[ -n "$REACT_PID" ] && kill $REACT_PID
-[ -n "$WEBJSX_PID" ] && kill $WEBJSX_PID

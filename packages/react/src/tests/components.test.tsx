@@ -1,10 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { BaseTestSuite } from "bench-utils/dist/base-test-suite.js";
-import type {
-  BenchmarkResult,
-  TestSuiteOptions,
-} from "bench-utils/dist/types.js";
+import type { TestCase } from "bench-utils/dist/types.js";
 
 const SimpleComponent = () => <div>Simple component</div>;
 
@@ -41,39 +38,32 @@ export class ComponentsTest extends BaseTestSuite {
     this.root = ReactDOM.createRoot(this.container);
   }
 
-  async *run(
-    options: TestSuiteOptions
-  ): AsyncGenerator<BenchmarkResult, void, unknown> {
+  async *getAllTests(): AsyncGenerator<TestCase, void, unknown> {
     // Test 1: Simple component mounting
-    yield this.runTest(
-      "Simple component mount",
-      () => {
-        this.cleanup();
+    yield {
+      name: "Simple component mount",
+      run: () => {
         const vdom = <SimpleComponent />;
         this.root.render(vdom);
       },
-      options
-    );
+    };
 
     // Test 2: Complex component mounting
     let complexCounter = 0;
-    yield this.runTest(
-      "Complex component mount",
-      () => {
-        this.cleanup();
+    yield {
+      name: "Complex component mount",
+      run: () => {
         complexCounter++;
         const vdom = <ComplexComponent count={complexCounter} />;
         this.root.render(vdom);
       },
-      options
-    );
+    };
 
     // Test 3: Multiple components
     let multiCounter = 0;
-    yield this.runTest(
-      "Multiple components mount",
-      () => {
-        this.cleanup();
+    yield {
+      name: "Multiple components mount",
+      run: () => {
         multiCounter++;
         const vdom = (
           <div>
@@ -87,7 +77,6 @@ export class ComponentsTest extends BaseTestSuite {
         );
         this.root.render(vdom);
       },
-      options
-    );
+    };
   }
 }

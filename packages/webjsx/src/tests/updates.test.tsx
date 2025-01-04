@@ -1,21 +1,16 @@
 import * as webjsx from "webjsx";
 import { BaseTestSuite } from "bench-utils/dist/base-test-suite.js";
-import type {
-  BenchmarkResult,
-  TestSuiteOptions,
-} from "bench-utils/dist/types.js";
+import type { TestCase } from "bench-utils/dist/types.js";
 
 export class UpdatesTest extends BaseTestSuite {
   name = "WebJSX Updates Tests";
 
-  async *run(
-    options: TestSuiteOptions
-  ): AsyncGenerator<BenchmarkResult, void, unknown> {
+  async *getAllTests(): AsyncGenerator<TestCase, void, unknown> {
     // Test 1: Toggle class
     let isActive = false;
-    yield this.runTest(
-      "Class toggle updates",
-      () => {
+    yield {
+      name: "Class toggle updates",
+      run: () => {
         isActive = !isActive;
         const vdom = (
           <div className={isActive ? "active" : "inactive"}>
@@ -24,26 +19,24 @@ export class UpdatesTest extends BaseTestSuite {
         );
         webjsx.applyDiff(this.container, vdom);
       },
-      options
-    );
+    };
 
     // Test 2: Text content updates
     let counter = 0;
-    yield this.runTest(
-      "Text content updates",
-      () => {
+    yield {
+      name: "Text content updates",
+      run: () => {
         counter++;
         const vdom = <div>Counter value: {counter}</div>;
         webjsx.applyDiff(this.container, vdom);
       },
-      options
-    );
+    };
 
     // Test 3: List reordering
     const baseItems = Array.from({ length: 100 }, (_, i) => i);
-    yield this.runTest(
-      "List reordering",
-      () => {
+    yield {
+      name: "List reordering",
+      run: () => {
         const shuffled = [...baseItems].sort(() => Math.random() - 0.5);
         const vdom = (
           <ul>
@@ -54,14 +47,13 @@ export class UpdatesTest extends BaseTestSuite {
         );
         webjsx.applyDiff(this.container, vdom);
       },
-      options
-    );
+    };
 
     // Test 4: Style updates
     let styleCounter = 0;
-    yield this.runTest(
-      "Style updates",
-      () => {
+    yield {
+      name: "Style updates",
+      run: () => {
         styleCounter++;
         const hue = (styleCounter * 10) % 360;
         const vdom = (
@@ -77,7 +69,6 @@ export class UpdatesTest extends BaseTestSuite {
         );
         webjsx.applyDiff(this.container, vdom);
       },
-      options
-    );
+    };
   }
 }

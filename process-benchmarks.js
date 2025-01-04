@@ -30,7 +30,7 @@ async function runCommand(command, args, cwd = process.cwd()) {
   });
 }
 
-async function runBrowserBenchmarks(framework, duration) {
+async function runBrowserBenchmarks(framework, duration, testFilter) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   const results = [];
@@ -59,6 +59,13 @@ async function runBrowserBenchmarks(framework, duration) {
       duration
     );
 
+    // Inject test filter
+    if (testFilter) {
+      await page.evaluate((filter) => {
+        window.testFilter = filter;
+      }, testFilter);
+    }
+
     // Click the run tests button
     await page.click("#run-tests");
 
@@ -69,25 +76,28 @@ async function runBrowserBenchmarks(framework, duration) {
       });
 
       // Process any new results
-      // Process any new results
       for (const result of newResults) {
         if (!seenTests.has(result.name)) {
-          seenTests.add(result.name);
-          results.push(result);
-          // Safely format numbers with null checks
-          const hz = result.hz ? result.hz.toFixed(2) : "N/A";
-          const mean = result.stats?.mean
-            ? result.stats.mean.toFixed(3)
-            : "N/A";
-          const deviation = result.stats?.deviation
-            ? result.stats.deviation.toFixed(2)
-            : "N/A";
+          // Apply test filter if present
+          if (!testFilter || result.name.includes(testFilter)) {
+            seenTests.add(result.name);
+            results.push(result);
+            // Format numbers with null checks
+            const hz = result.hz ? result.hz.toFixed(2) : "N/A";
+            const mean = result.stats?.mean
+              ? result.stats.mean.toFixed(3)
+              : "N/A";
+            const deviation = result.stats?.deviation
+              ? result.stats.deviation.toFixed(2)
+              : "N/A";
 
-          console.log(
-            `[${framework}] ${result.name}: ${hz} ops/sec, ${mean}ms ±${deviation}%`
-          );
+            console.log(
+              `[${framework}] ${result.name}: ${hz} ops/sec, ${mean}ms ±${deviation}%`
+            );
+          }
         }
       }
+
       // Check if tests are complete
       const isComplete = await page.evaluate(() => {
         const button = document.getElementById("run-tests");
@@ -263,17 +273,40 @@ async function main() {
       ? args[outputArg + 1]
       : join(os.tmpdir(), `benchmark-${Date.now()}.html`);
 
-  const durationArg =
-    args.find((arg) => arg.startsWith("--duration="))?.split("=")[1] || "3";
-  const duration = parseFloat(durationArg);
+  // Fix: Change how we parse framework argument to handle both formats
+  const frameworkArg = args.find(
+    (arg) =>
+      arg.startsWith("--framework=") || arg === "-f" || arg === "--framework"
+  );
+  const framework = frameworkArg
+    ? frameworkArg.includes("=")
+      ? frameworkArg.split("=")[1]
+      : args[args.indexOf(frameworkArg) + 1]
+    : undefined;
+
+  const testArg = args.find((arg) => arg.startsWith("--test="));
+  const testFilter = testArg ? testArg.split("=")[1] : undefined;
+
+  const durationArg = args.find((arg) => arg.startsWith("--duration="));
+  const duration = durationArg ? parseFloat(durationArg.split("=")[1]) : 3;
 
   console.log(`Running benchmarks with duration: ${duration}s`);
+  console.log(`Selected framework: ${framework || "all"}`);
 
-  console.log("Running React benchmarks...");
-  const reactResults = await runBrowserBenchmarks("react", duration);
+  let reactResults = [];
+  let webjsxResults = [];
 
-  console.log("\nRunning WebJSX benchmarks...");
-  const webjsxResults = await runBrowserBenchmarks("webjsx", duration);
+  // Only run React if specifically requested or if no framework specified
+  if (framework === "react") {
+    console.log("Running React benchmarks...");
+    reactResults = await runBrowserBenchmarks("react", duration, testFilter);
+  }
+
+  // Only run WebJSX if specifically requested or if no framework specified
+  if (framework === "webjsx") {
+    console.log("\nRunning WebJSX benchmarks...");
+    webjsxResults = await runBrowserBenchmarks("webjsx", duration, testFilter);
+  }
 
   const html = generateHtml(reactResults, webjsxResults);
   await fs.writeFile(outputPath, html);

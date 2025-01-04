@@ -1,4 +1,9 @@
-import { TestSuite, TestSuiteOptions, BenchmarkResult } from "./types.js";
+import {
+  TestSuite,
+  TestSuiteOptions,
+  TestCase,
+  BenchmarkResult,
+} from "./types.js";
 import { runBenchmark } from "./benchmark.js";
 
 export abstract class BaseTestSuite implements TestSuite {
@@ -16,16 +21,11 @@ export abstract class BaseTestSuite implements TestSuite {
     this.container.innerHTML = "";
   }
 
-  protected runTest(
-    name: string,
-    fn: () => void,
-    options: TestSuiteOptions
-  ): BenchmarkResult {
-    options.onTestStart?.(name);
-    return runBenchmark(name, fn, options);
+  runTest(testCase: TestCase, options: TestSuiteOptions): BenchmarkResult {
+    options.onTestStart?.(testCase.name);
+    this.cleanup();
+    return runBenchmark(testCase.name, testCase.run, options);
   }
 
-  abstract run(
-    options: TestSuiteOptions
-  ): AsyncGenerator<BenchmarkResult, void, unknown>;
+  abstract getAllTests(): AsyncGenerator<TestCase, void, unknown>;
 }

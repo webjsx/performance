@@ -7,6 +7,11 @@ export interface BenchmarkResult {
   };
 }
 
+export interface TestCase {
+  name: string;
+  run: () => void;
+}
+
 export interface TestSuiteOptions {
   /**
    * Duration in seconds to run each test for
@@ -19,9 +24,15 @@ export interface TestSuiteOptions {
 
 export interface TestSuite {
   name: string;
-  run(
-    options: TestSuiteOptions
-  ): AsyncGenerator<BenchmarkResult, void, unknown>;
+  /**
+   * Gets all available test cases without running them
+   */
+  getAllTests(): AsyncGenerator<TestCase, void, unknown>;
+
+  /**
+   * Runs the specified test case and returns the benchmark result
+   */
+  runTest(testCase: TestCase, options: TestSuiteOptions): BenchmarkResult;
 }
 
 export interface BenchmarkOptions {
@@ -29,4 +40,8 @@ export interface BenchmarkOptions {
   duration?: number;
   /** Working directory for the benchmark process */
   cwd?: string;
+  /** Filter to only run tests from specific framework */
+  framework?: string;
+  /** Filter to only run tests matching this name */
+  test?: string;
 }

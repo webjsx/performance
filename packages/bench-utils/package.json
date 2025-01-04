@@ -1,0 +1,25 @@
+{
+  "name": "bench-utils",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*"
+      ]
+    }
+  },
+  "main": "./dist/index.js",
+  "devDependencies": {
+    "@types/benchmark": "^2.1.5",
+    "puppeteer": "^23.11.1",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "reinstall": "rm -rf node_modules && npm install",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc"
+  }
+}

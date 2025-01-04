@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "outDir": "./dist",
     "declaration": true,
-    "types": ["benchmark"],
+    "types": ["benchmark", "node"],
     "typeRoots": ["../../node_modules/@types", "./node_modules/@types"],
     "rootDir": "./src",
     "rootDirs": ["./src"],

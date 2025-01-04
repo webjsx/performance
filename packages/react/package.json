@@ -13,20 +13,26 @@
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",
+    "@types/node": "^22.10.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.2.1",
     "benchmark": "^2.1.4",
     "http-server": "^14.1.1",
     "puppeteer": "^23.11.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^5.0.12"
   },
   "scripts": {
+    "reinstall": "rm -rf node_modules && npm install",
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc && cp src/index.html dist/index.html",
-    "serve": "http-server dist -p 8080 -c-1 --silent",
-    "benchmark": "node dist/run-benchmark.js"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "benchmark": "node --loader ts-node/esm ./src/benchmark.ts"
   },
   "dependencies": {
+    "bench-utils": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

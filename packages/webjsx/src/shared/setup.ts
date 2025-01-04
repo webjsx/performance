@@ -1,4 +1,4 @@
-import { BenchmarkResult } from "./types.js";
+import { BenchmarkResult } from "../types.js";
 
 export function formatResults(results: BenchmarkResult[]): string {
   return results

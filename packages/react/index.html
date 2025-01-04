@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>React Benchmarks</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="results"></div>
+    <div id="controls">
+      <button id="run-tests">Run All Tests</button>
+    </div>
+    <script type="module">
+      import { RenderTest } from "./src/tests/render.test.tsx";
+      import { UpdatesTest } from "./src/tests/updates.test.tsx";
+      import { ComponentsTest } from "./src/tests/components.test.tsx";
+      import { displayResults } from "./src/shared/setup.ts";
+
+      const suites = [
+        new RenderTest(),
+        new UpdatesTest(),
+        new ComponentsTest(),
+      ];
+
+      document
+        .getElementById("run-tests")
+        .addEventListener("click", async () => {
+          const allResults = [];
+          for (const suite of suites) {
+            console.log("Running suite:", suite.name);
+            const results = await suite.run();
+            allResults.push(...results);
+          }
+          displayResults(allResults);
+        });
+    </script>
+  </body>
+</html>

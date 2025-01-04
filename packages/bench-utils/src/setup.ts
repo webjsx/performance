@@ -1,9 +1,9 @@
-import { BenchmarkResult } from "../types.js";
+import { BenchmarkResult } from "./types.js";
+
+const separator = "─".repeat(50);
+const header = "📊 BENCHMARK RESULTS";
 
 export function formatResults(results: BenchmarkResult[]): string {
-  const separator = "─".repeat(50);
-  const header = "📊 BENCHMARK RESULTS";
-
   return `
 ${separator}
 ${header}
@@ -29,9 +29,6 @@ export function displayResults(results: BenchmarkResult[]): void {
   const resultDiv = document.getElementById("results");
   if (!resultDiv) return;
 
-  const formattedResults = formatResults(results);
-
-  // Add some basic styling
   resultDiv.innerHTML = `
     <pre style="
       background: #f5f5f5;
@@ -40,6 +37,6 @@ export function displayResults(results: BenchmarkResult[]): void {
       font-family: monospace;
       white-space: pre-wrap;
       margin: 20px 0;
-    ">${formattedResults}</pre>
+    ">${formatResults(results)}</pre>
   `;
 }

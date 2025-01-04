@@ -13,18 +13,23 @@
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",
+    "@types/node": "^22.10.5",
     "benchmark": "^2.1.4",
     "http-server": "^14.1.1",
     "puppeteer": "^23.11.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^5.0.12"
   },
   "scripts": {
+    "reinstall": "rm -rf node_modules && npm install",
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc && mkdir -p dist/vendor/webjsx && cp src/index.html dist/index.html && cp -r ../../node_modules/webjsx/dist/* dist/vendor/webjsx/",
-    "serve": "http-server dist -p 8080 -c-1 --silent",
-    "benchmark": "node dist/run-benchmark.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "benchmark": "node --loader ts-node/esm ./src/benchmark.ts"
   },
   "dependencies": {
+    "bench-utils": "*",
     "webjsx": "^0.0.44"
   }
 }

@@ -1,9 +1,9 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
-import type { TestSuite, BenchmarkResult } from "../../shared/types.js";
+import type { TestSuite, BenchmarkResult } from "../types.js";
 
-export class SimpleElementsTest implements TestSuite {
-  name = "Simple Elements Initial Render";
+export class UpdatesTest implements TestSuite {
+  name = "DOM Updates Tests";
   private container: HTMLElement;
   private root: ReactDOM.Root;
 
@@ -20,38 +20,18 @@ export class SimpleElementsTest implements TestSuite {
 
   async run(): Promise<BenchmarkResult[]> {
     const results: BenchmarkResult[] = [];
-    const iterations = 10000;
+    const iterations = 1000;
 
-    // Test 1: Single div
+    // Test 1: Toggle class
     {
       const start = performance.now();
-      for (let i = 0; i < iterations; i++) {
-        this.cleanup();
-        const vdom = <div>Hello World</div>;
-        this.root.render(vdom);
-      }
-      const end = performance.now();
+      let isActive = false;
 
-      results.push({
-        name: "Single div render",
-        hz: iterations / ((end - start) / 1000),
-        stats: {
-          mean: (end - start) / iterations,
-          deviation: 0,
-        },
-      });
-    }
-
-    // Test 2: Nested divs
-    {
-      const start = performance.now();
       for (let i = 0; i < iterations; i++) {
-        this.cleanup();
+        isActive = !isActive;
         const vdom = (
-          <div>
-            <div>
-              <div>Deep nested</div>
-            </div>
+          <div className={isActive ? "active" : "inactive"}>
+            Toggle class test
           </div>
         );
         this.root.render(vdom);
@@ -59,7 +39,7 @@ export class SimpleElementsTest implements TestSuite {
       const end = performance.now();
 
       results.push({
-        name: "Nested divs render",
+        name: "Class toggle updates",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,
@@ -68,21 +48,17 @@ export class SimpleElementsTest implements TestSuite {
       });
     }
 
-    // Test 3: List rendering
+    // Test 2: Text content updates
     {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
-        this.cleanup();
-        const items = Array.from({ length: 100 }, (_, index) => (
-          <li key={index}>Item {index + 1}</li>
-        ));
-        const vdom = <ul>{items}</ul>;
+        const vdom = <div>Counter value: {i}</div>;
         this.root.render(vdom);
       }
       const end = performance.now();
 
       results.push({
-        name: "100 item list render",
+        name: "Text content updates",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,
@@ -91,23 +67,48 @@ export class SimpleElementsTest implements TestSuite {
       });
     }
 
-    // Test 4: Text content with styling
+    // Test 3: List reordering
+    {
+      const start = performance.now();
+      const baseItems = Array.from({ length: 100 }, (_, i) => i);
+
+      for (let i = 0; i < iterations; i++) {
+        const shuffled = [...baseItems].sort(() => Math.random() - 0.5);
+        const vdom = (
+          <ul>
+            {shuffled.map((num) => (
+              <li key={num}>Item {num}</li>
+            ))}
+          </ul>
+        );
+        this.root.render(vdom);
+      }
+      const end = performance.now();
+
+      results.push({
+        name: "List reordering",
+        hz: iterations / ((end - start) / 1000),
+        stats: {
+          mean: (end - start) / iterations,
+          deviation: 0,
+        },
+      });
+    }
+
+    // Test 4: Style updates
     {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
-        this.cleanup();
+        const hue = (i * 10) % 360;
         const vdom = (
-          <div>
-            <h1 style={{ color: "blue", fontSize: "24px" }}>Title</h1>
-            <p style={{ color: "gray", marginBottom: "10px" }}>
-              This is a paragraph with some styled text content that needs to be
-              rendered. It contains multiple text nodes and inline styles to
-              test text rendering performance.
-            </p>
-            <p style={{ fontWeight: "bold" }}>
-              Here is another paragraph with different styling applied to test
-              style application performance.
-            </p>
+          <div
+            style={{
+              backgroundColor: `hsl(${hue}, 70%, 50%)`,
+              padding: `${10 + (i % 10)}px`,
+              fontSize: `${14 + (i % 8)}px`,
+            }}
+          >
+            Dynamic styles test
           </div>
         );
         this.root.render(vdom);
@@ -115,7 +116,7 @@ export class SimpleElementsTest implements TestSuite {
       const end = performance.now();
 
       results.push({
-        name: "Styled text content render",
+        name: "Style updates",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,

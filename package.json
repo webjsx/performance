@@ -3,15 +3,19 @@
   "private": true,
   "type": "module",
   "workspaces": [
+    "packages/bench-utils",
     "packages/webjsx",
     "packages/react"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces",
-    "build": "npm run clean && npm run build --workspaces",
+    "reinstall-common": "cd packages/bench-utils && rm -rf node_modules && npm install",
+    "reinstall-test-packages": "npm run reinstall --workspaces --if-present",
+    "reinstall": "npm run reinstall-common && npm run reinstall-test-packages",
+    "build-common": "cd packages/bench-utils && npm run build",
+    "build": "npm run build-common && npm run build --workspaces",
     "react-tests": "cd packages/react && npm run benchmark",
-    "webjsx-tests": "cd packages/webjsx && npm run benchmark",
-    "test": "npm run build && npm run react-tests && npm run webjsx-tests"
+    "webjsx-tests": "cd packages/webjsx && npm run benchmark"
   },
   "dependencies": {
     "open": "^10.1.0"

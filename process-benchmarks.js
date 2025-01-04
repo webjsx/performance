@@ -33,31 +33,72 @@ function parseResults(output) {
   const results = [];
   const lines = output.split("\n");
 
+  console.log("Raw output:", output); // Debug log
+
   let currentTest = null;
+
   for (const line of lines) {
-    if (line.includes("Test:")) {
-      if (currentTest) {
+    const trimmedLine = line.trim();
+
+    // Skip empty lines and separator lines
+    if (!line || line.startsWith("─")) continue;
+
+    // Try to match different possible formats of test output
+    if (
+      trimmedLine.includes("Test:") ||
+      trimmedLine.match(/^[A-Za-z][A-Za-z0-9 -]+$/)
+    ) {
+      // If we have a current test, push it before starting a new one
+      if (currentTest && currentTest.name && currentTest.opsPerSec !== null) {
         results.push(currentTest);
       }
+
       currentTest = {
-        name: line.replace("Test:", "").trim(),
+        name: trimmedLine.replace("Test:", "").trim(),
         opsPerSec: null,
         avgTime: null,
         deviation: null,
       };
     } else if (currentTest) {
-      if (line.includes("Operations/sec:")) {
-        currentTest.opsPerSec = parseFloat(line.split(":")[1]);
-      } else if (line.includes("Average time:")) {
-        currentTest.avgTime = parseFloat(line.split(":")[1]);
-      } else if (line.includes("Deviation:")) {
-        currentTest.deviation = parseFloat(line.split(":")[1]);
+      // Parse operations per second (handle different formats)
+      if (
+        trimmedLine.includes("Operations/sec:") ||
+        trimmedLine.includes("Ops/sec:")
+      ) {
+        const match = trimmedLine.match(/[\d.]+/);
+        if (match) {
+          currentTest.opsPerSec = parseFloat(match[0]);
+        }
+      }
+      // Parse average time (handle different formats)
+      else if (
+        trimmedLine.includes("Average time:") ||
+        trimmedLine.includes("Mean:") ||
+        trimmedLine.includes("Mean (ms):")
+      ) {
+        const match = trimmedLine.match(/[\d.]+/);
+        if (match) {
+          currentTest.avgTime = parseFloat(match[0]);
+        }
+      }
+      // Parse deviation (handle different formats)
+      else if (
+        trimmedLine.includes("Deviation:") ||
+        trimmedLine.includes("±")
+      ) {
+        const match = trimmedLine.match(/[\d.]+/);
+        if (match) {
+          currentTest.deviation = parseFloat(match[0]);
+        }
       }
     }
   }
-  if (currentTest) {
+
+  // Don't forget to push the last test
+  if (currentTest && currentTest.name && currentTest.opsPerSec !== null) {
     results.push(currentTest);
   }
+
   return results;
 }
 
@@ -71,16 +112,18 @@ function generateHtml(reactResults, webjsxResults) {
     const react = reactResults.find((r) => r.name === testName) || {};
     const webjsx = webjsxResults.find((w) => w.name === testName) || {};
 
+    const comparison =
+      react.opsPerSec && webjsx.opsPerSec
+        ? (webjsx.opsPerSec / react.opsPerSec - 1) * 100
+        : null;
+
     return {
       testName,
       reactOps: react.opsPerSec?.toFixed(2) || "-",
       reactTime: react.avgTime?.toFixed(3) || "-",
       webjsxOps: webjsx.opsPerSec?.toFixed(2) || "-",
       webjsxTime: webjsx.avgTime?.toFixed(3) || "-",
-      comparison:
-        react.opsPerSec && webjsx.opsPerSec
-          ? ((webjsx.opsPerSec / react.opsPerSec - 1) * 100).toFixed(1)
-          : "-",
+      comparison: comparison !== null ? comparison.toFixed(1) : "-",
     };
   });
 
@@ -126,10 +169,23 @@ function generateHtml(reactResults, webjsxResults) {
             color: #666;
             font-size: 0.9em;
         }
+        .header {
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <h1>Framework Performance Comparison</h1>
+    <div class="header">
+        <h1>Framework Performance Comparison</h1>
+        <p>React vs WebJSX Performance Benchmark Results</p>
+    </div>
+    
     <table>
         <thead>
             <tr>
@@ -163,6 +219,35 @@ function generateHtml(reactResults, webjsxResults) {
         </tbody>
     </table>
     <p><small>Generated on ${new Date().toLocaleString()}</small></p>
+    <script>
+        // Add sorting functionality
+        document.querySelectorAll('th').forEach((header, index) => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const table = header.closest('table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                rows.sort((a, b) => {
+                    const aValue = a.children[index].textContent;
+                    const bValue = b.children[index].textContent;
+                    
+                    if (index === 0) {
+                        return aValue.localeCompare(bValue);
+                    }
+                    
+                    const aNum = parseFloat(aValue);
+                    const bNum = parseFloat(bValue);
+                    
+                    if (isNaN(aNum) || isNaN(bNum)) return 0;
+                    return bNum - aNum;
+                });
+                
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    </script>
 </body>
 </html>`;
 }
@@ -173,11 +258,31 @@ async function main() {
 
   console.log("Running React benchmarks...");
   const reactOutput = await runCommand("npm", ["run", "react-tests"]);
+  console.log("\nParsing React results...");
   const reactResults = parseResults(reactOutput);
+  console.log("\nReact Benchmark Results:");
+  console.log("─".repeat(50));
+  reactResults.forEach((result) => {
+    console.log(`Test: ${result.name}`);
+    console.log(`  Operations/sec: ${result.opsPerSec.toFixed(2)}`);
+    console.log(`  Average time: ${result.avgTime.toFixed(3)}ms`);
+    console.log(`  Deviation: ±${result.deviation.toFixed(2)}%`);
+    console.log("─".repeat(50));
+  });
 
-  console.log("Running WebJSX benchmarks...");
+  console.log("\nRunning WebJSX benchmarks...");
   const webjsxOutput = await runCommand("npm", ["run", "webjsx-tests"]);
+  console.log("\nParsing WebJSX results...");
   const webjsxResults = parseResults(webjsxOutput);
+  console.log("\nWebJSX Benchmark Results:");
+  console.log("─".repeat(50));
+  webjsxResults.forEach((result) => {
+    console.log(`Test: ${result.name}`);
+    console.log(`  Operations/sec: ${result.opsPerSec.toFixed(2)}`);
+    console.log(`  Average time: ${result.avgTime.toFixed(3)}ms`);
+    console.log(`  Deviation: ±${result.deviation.toFixed(2)}%`);
+    console.log("─".repeat(50));
+  });
 
   const html = generateHtml(reactResults, webjsxResults);
   await fs.writeFile(outputPath, html);

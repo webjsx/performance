@@ -1,16 +1,21 @@
-import * as webjsx from "webjsx";
-import type { TestSuite, BenchmarkResult } from "../../shared/types.js";
+import * as React from "react";
+import * as ReactDOM from "react-dom/client";
+import type { TestSuite, BenchmarkResult } from "../types.js";
 
-export class SimpleElementsTest implements TestSuite {
-  name = "Simple Elements Initial Render";
+export class RenderTest implements TestSuite {
+  name = "Basic Render Tests";
   private container: HTMLElement;
+  private root: ReactDOM.Root;
 
   constructor() {
     this.container = document.getElementById("app") as HTMLElement;
+    this.root = ReactDOM.createRoot(this.container);
   }
 
   private cleanup() {
+    this.root.unmount();
     this.container.innerHTML = "";
+    this.root = ReactDOM.createRoot(this.container);
   }
 
   async run(): Promise<BenchmarkResult[]> {
@@ -23,7 +28,7 @@ export class SimpleElementsTest implements TestSuite {
       for (let i = 0; i < iterations; i++) {
         this.cleanup();
         const vdom = <div>Hello World</div>;
-        webjsx.applyDiff(this.container, vdom);
+        this.root.render(vdom);
       }
       const end = performance.now();
 
@@ -37,7 +42,7 @@ export class SimpleElementsTest implements TestSuite {
       });
     }
 
-    // Test 2: Nested divs
+    // Test 2: Nested divs (5 levels)
     {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
@@ -45,16 +50,20 @@ export class SimpleElementsTest implements TestSuite {
         const vdom = (
           <div>
             <div>
-              <div>Deep nested</div>
+              <div>
+                <div>
+                  <div>Deep nested (5 levels)</div>
+                </div>
+              </div>
             </div>
           </div>
         );
-        webjsx.applyDiff(this.container, vdom);
+        this.root.render(vdom);
       }
       const end = performance.now();
 
       results.push({
-        name: "Nested divs render",
+        name: "5-level nested divs",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,
@@ -63,21 +72,21 @@ export class SimpleElementsTest implements TestSuite {
       });
     }
 
-    // Test 3: List rendering
+    // Test 3: Large flat list
     {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
         this.cleanup();
-        const items = Array.from({ length: 100 }, (_, index) => (
-          <li key={index}>Item {index + 1}</li>
+        const items = Array.from({ length: 1000 }, (_, index) => (
+          <div key={index}>Item {index + 1}</div>
         ));
-        const vdom = <ul>{items}</ul>;
-        webjsx.applyDiff(this.container, vdom);
+        const vdom = <div>{items}</div>;
+        this.root.render(vdom);
       }
       const end = performance.now();
 
       results.push({
-        name: "100 item list render",
+        name: "1000 siblings render",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,
@@ -86,31 +95,26 @@ export class SimpleElementsTest implements TestSuite {
       });
     }
 
-    // Test 4: Text content with styling
+    // Test 4: Mixed content types
     {
       const start = performance.now();
       for (let i = 0; i < iterations; i++) {
         this.cleanup();
         const vdom = (
-          <div>
-            <h1 style={{ color: "blue", fontSize: "24px" }}>Title</h1>
-            <p style={{ color: "gray", marginBottom: "10px" }}>
-              This is a paragraph with some styled text content that needs to be
-              rendered. It contains multiple text nodes and inline styles to
-              test text rendering performance.
-            </p>
-            <p style={{ fontWeight: "bold" }}>
-              Here is another paragraph with different styling applied to test
-              style application performance.
-            </p>
-          </div>
+          <article>
+            <h1>Article Title</h1>
+            <p>Text content</p>
+            <img src="dummy.jpg" alt="test" />
+            <input type="text" placeholder="Enter text" />
+            <button type="button">Click me</button>
+          </article>
         );
-        webjsx.applyDiff(this.container, vdom);
+        this.root.render(vdom);
       }
       const end = performance.now();
 
       results.push({
-        name: "Styled text content render",
+        name: "Mixed elements render",
         hz: iterations / ((end - start) / 1000),
         stats: {
           mean: (end - start) / iterations,

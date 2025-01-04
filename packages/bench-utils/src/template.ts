@@ -66,6 +66,16 @@ export const benchmarkStyles = `
     box-sizing: border-box;
   }
 
+  select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+  }
+
   button {
     width: 100%;
     padding: 10px;
@@ -131,6 +141,52 @@ export function setupBenchmarkUI() {
   const resultsContainer = document.querySelector("#results pre");
   const runButton = document.getElementById("run-tests") as HTMLButtonElement;
   const appContainer = document.getElementById("app");
+  const controls = document.getElementById("controls");
+
+  // Create test selector
+  const testSelector = document.createElement("select");
+  testSelector.id = "test-selector";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = "All Tests";
+  testSelector.appendChild(defaultOption);
+
+  // Add label for test selector
+  const testLabel = document.createElement("label");
+  testLabel.htmlFor = "test-selector";
+  testLabel.textContent = "Select Test:";
+
+  // Create wrapper for label and select
+  const testControlGroup = document.createElement("div");
+  testControlGroup.className = "control-group";
+  testControlGroup.appendChild(testLabel);
+  testControlGroup.appendChild(testSelector);
+
+  // Add test selector to controls before the Run button
+  const buttonGroup = controls?.querySelector(".control-group:last-child");
+  if (buttonGroup && controls) {
+    controls.insertBefore(testControlGroup, buttonGroup);
+  }
+
+  // Populate test selector from all available tests
+  const populateTestSelector = async () => {
+    const existingTests = new Set<string>();
+
+    for (const suite of window.testSuites) {
+      for await (const test of suite.getAllTests()) {
+        if (!existingTests.has(test.name)) {
+          existingTests.add(test.name);
+          const option = document.createElement("option");
+          option.value = test.name;
+          option.textContent = test.name;
+          testSelector.appendChild(option);
+        }
+      }
+    }
+  };
+
+  // Populate tests initially
+  populateTestSelector();
 
   // Store for raw benchmark results
   window.benchmarkResults = {
@@ -173,7 +229,7 @@ export function setupBenchmarkUI() {
         (document.getElementById("duration") as HTMLInputElement).value
       ) || 2;
     const startTime = performance.now();
-    const testFilter = (window as any).testFilter;
+    const selectedTest = testSelector.value;
 
     try {
       window.benchmarkResults.allResults = [];
@@ -183,8 +239,8 @@ export function setupBenchmarkUI() {
         console.log("Running suite:", suite.name);
 
         for await (const testCase of suite.getAllTests()) {
-          // Skip tests that don't match the filter
-          if (testFilter && !testCase.name.includes(testFilter)) {
+          // Skip tests that don't match the selection
+          if (selectedTest && testCase.name !== selectedTest) {
             continue;
           }
 

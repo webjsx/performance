@@ -1,0 +1,30 @@
+{
+  "name": "webjsx-benchmarks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/benchmark": "^2.1.5",
+    "benchmark": "^2.1.4",
+    "http-server": "^14.1.1",
+    "puppeteer": "^23.11.1",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && mkdir -p dist/vendor/webjsx && cp src/index.html dist/index.html && cp -r ../../node_modules/webjsx/dist/* dist/vendor/webjsx/",
+    "serve": "http-server dist -p 8080 -c-1 --silent",
+    "benchmark": "node dist/run-benchmark.js"
+  },
+  "dependencies": {
+    "webjsx": "^0.0.44"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "webjsx-performance",
+  "private": true,
+  "workspaces": [
+    "packages/webjsx",
+    "packages/react"
+  ],
+  "scripts": {
+    "react-tests": "cd packages/react && npm run benchmark",
+    "webjsx-tests": "cd packages/webjsx && npm run benchmark"
+  },
+  "devDependencies": {
+    "@types/benchmark": "^2.1.5",
+    "benchmark": "^2.1.4",
+    "typescript": "^5.7.2"
+  }
+}

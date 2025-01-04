@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "types": ["benchmark"],
+    "typeRoots": ["../../node_modules/@types", "./node_modules/@types"],
+    "rootDir": "./src",
+    "rootDirs": ["./src"],
+    "composite": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

@@ -1,13 +1,20 @@
 {
   "name": "webjsx-performance",
   "private": true,
+  "type": "module",
   "workspaces": [
     "packages/webjsx",
     "packages/react"
   ],
   "scripts": {
+    "clean": "npm run clean --workspaces",
+    "build": "npm run clean && npm run build --workspaces",
     "react-tests": "cd packages/react && npm run benchmark",
-    "webjsx-tests": "cd packages/webjsx && npm run benchmark"
+    "webjsx-tests": "cd packages/webjsx && npm run benchmark",
+    "test": "npm run build && npm run react-tests && npm run webjsx-tests"
+  },
+  "dependencies": {
+    "open": "^10.1.0"
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",

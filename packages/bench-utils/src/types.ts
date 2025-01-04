@@ -7,17 +7,21 @@ export interface BenchmarkResult {
   };
 }
 
-export interface TestSuite {
-  name: string;
-  run(options: TestSuiteOptions): Promise<BenchmarkResult[]>;
-}
-
 export interface TestSuiteOptions {
   /**
    * Duration in seconds to run each test for
    * @default 2
    */
   duration?: number;
+  /** Callback when a test starts */
+  onTestStart?: (testName: string) => void;
+}
+
+export interface TestSuite {
+  name: string;
+  run(
+    options: TestSuiteOptions
+  ): AsyncGenerator<BenchmarkResult, void, unknown>;
 }
 
 export interface BenchmarkOptions {

@@ -77,10 +77,11 @@ async function runBrowserBenchmarks(framework, duration, testFilter) {
 
       // Process any new results
       for (const result of newResults) {
+        // Only process if we haven't seen this test before
         if (!seenTests.has(result.name)) {
-          // Apply test filter if present
+          seenTests.add(result.name);
+
           if (!testFilter || result.name.includes(testFilter)) {
-            seenTests.add(result.name);
             results.push(result);
             // Format numbers with null checks
             const hz = result.hz ? result.hz.toFixed(2) : "N/A";

@@ -46,14 +46,15 @@ fi
 # Wait for servers to start
 sleep 2
 
-# Run the Node.js script with all parameters
+# Build the arguments string, properly quoting the test parameter
 ARGS=""
 [ -n "$FRAMEWORK" ] && ARGS="$ARGS --framework $FRAMEWORK"
-[ -n "$TEST" ] && ARGS="$ARGS --test $TEST"
+[ -n "$TEST" ] && ARGS="$ARGS --test \"$TEST\""
 [ -n "$OUT_PATH" ] && ARGS="$ARGS --out \"$OUT_PATH\""
 [ -n "$DURATION" ] && ARGS="$ARGS --duration=$DURATION"
 
-node process-benchmarks.js $ARGS
+# Use eval to properly handle the quoted arguments
+eval "node process-benchmarks.js $ARGS"
 
 # Kill any running servers
 [ -n "$REACT_PID" ] && kill $REACT_PID

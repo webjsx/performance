@@ -26,6 +26,17 @@ done
 echo "Building packages..."
 npm run build
 
+# Start the React dev server
+(cd packages/react && npm run preview) &
+REACT_PID=$!
+
+# Start the WebJSX dev server
+(cd packages/webjsx && npm run preview -- --port 4174) &
+WEBJSX_PID=$!
+
+# Wait for servers to start
+sleep 2
+
 # Run the Node.js script
 if [ -n "$OUT_PATH" ]; then
   # If output path is specified
@@ -34,3 +45,7 @@ else
   # No output path specified
   node process-benchmarks.js --duration="$DURATION"
 fi
+
+# Kill the dev servers
+kill $REACT_PID
+kill $WEBJSX_PID

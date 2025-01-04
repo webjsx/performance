@@ -6,7 +6,7 @@ export const benchmarkStyles = `
 
 export function setupBenchmarkUI() {
   const resultsContainer = document.querySelector("#results pre");
-  const runButton = document.getElementById("run-tests");
+  const runButton = document.getElementById("run-tests") as HTMLButtonElement;
   const appContainer = document.getElementById("app");
 
   // Store for raw benchmark results

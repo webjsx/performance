@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import os from "os";
 import open from "open";
+import puppeteer from "puppeteer";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -29,74 +30,78 @@ async function runCommand(command, args, cwd = process.cwd()) {
   });
 }
 
-function parseResults(output) {
+async function runBrowserBenchmarks(framework, duration) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
   const results = [];
-  const lines = output.split("\n");
+  const seenTests = new Set();
 
-  console.log("Raw output:", output); // Debug log
-
-  let currentTest = null;
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    // Skip empty lines and separator lines
-    if (!line || line.startsWith("─")) continue;
-
-    // Try to match different possible formats of test output
-    if (
-      trimmedLine.includes("Test:") ||
-      trimmedLine.match(/^[A-Za-z][A-Za-z0-9 -]+$/)
-    ) {
-      // If we have a current test, push it before starting a new one
-      if (currentTest && currentTest.name && currentTest.opsPerSec !== null) {
-        results.push(currentTest);
-      }
-
-      currentTest = {
-        name: trimmedLine.replace("Test:", "").trim(),
-        opsPerSec: null,
-        avgTime: null,
-        deviation: null,
-      };
-    } else if (currentTest) {
-      // Parse operations per second (handle different formats)
-      if (
-        trimmedLine.includes("Operations/sec:") ||
-        trimmedLine.includes("Ops/sec:")
-      ) {
-        const match = trimmedLine.match(/[\d.]+/);
-        if (match) {
-          currentTest.opsPerSec = parseFloat(match[0]);
-        }
-      }
-      // Parse average time (handle different formats)
-      else if (
-        trimmedLine.includes("Average time:") ||
-        trimmedLine.includes("Mean:") ||
-        trimmedLine.includes("Mean (ms):")
-      ) {
-        const match = trimmedLine.match(/[\d.]+/);
-        if (match) {
-          currentTest.avgTime = parseFloat(match[0]);
-        }
-      }
-      // Parse deviation (handle different formats)
-      else if (
-        trimmedLine.includes("Deviation:") ||
-        trimmedLine.includes("±")
-      ) {
-        const match = trimmedLine.match(/[\d.]+/);
-        if (match) {
-          currentTest.deviation = parseFloat(match[0]);
-        }
-      }
+  // Set up console log forwarding
+  page.on("console", (msg) => {
+    const text = msg.text();
+    if (!text.includes("Failed to load resource") && !text.includes("404")) {
+      console.log(`[${framework}]`, text);
     }
-  }
+  });
 
-  // Don't forget to push the last test
-  if (currentTest && currentTest.name && currentTest.opsPerSec !== null) {
-    results.push(currentTest);
+  try {
+    // Navigate to the appropriate URL based on framework
+    const url =
+      framework === "react" ? "http://localhost:4173" : "http://localhost:4174";
+    await page.goto(url);
+
+    // Set duration in the page
+    await page.$eval(
+      "#duration",
+      (el, dur) => {
+        el.value = dur.toString();
+      },
+      duration
+    );
+
+    // Click the run tests button
+    await page.click("#run-tests");
+
+    // Poll for results periodically
+    while (true) {
+      const newResults = await page.evaluate(() => {
+        return window.benchmarkResults?.allResults || [];
+      });
+
+      // Process any new results
+      // Process any new results
+      for (const result of newResults) {
+        if (!seenTests.has(result.name)) {
+          seenTests.add(result.name);
+          results.push(result);
+          // Safely format numbers with null checks
+          const hz = result.hz ? result.hz.toFixed(2) : "N/A";
+          const mean = result.stats?.mean
+            ? result.stats.mean.toFixed(3)
+            : "N/A";
+          const deviation = result.stats?.deviation
+            ? result.stats.deviation.toFixed(2)
+            : "N/A";
+
+          console.log(
+            `[${framework}] ${result.name}: ${hz} ops/sec, ${mean}ms ±${deviation}%`
+          );
+        }
+      }
+      // Check if tests are complete
+      const isComplete = await page.evaluate(() => {
+        const button = document.getElementById("run-tests");
+        return button && !button.disabled;
+      });
+
+      if (isComplete && newResults.length > 0) {
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  } finally {
+    await browser.close();
   }
 
   return results;
@@ -113,16 +118,14 @@ function generateHtml(reactResults, webjsxResults) {
     const webjsx = webjsxResults.find((w) => w.name === testName) || {};
 
     const comparison =
-      react.opsPerSec && webjsx.opsPerSec
-        ? (webjsx.opsPerSec / react.opsPerSec - 1) * 100
-        : null;
+      react.hz && webjsx.hz ? (webjsx.hz / react.hz - 1) * 100 : null;
 
     return {
       testName,
-      reactOps: react.opsPerSec?.toFixed(2) || "-",
-      reactTime: react.avgTime?.toFixed(3) || "-",
-      webjsxOps: webjsx.opsPerSec?.toFixed(2) || "-",
-      webjsxTime: webjsx.avgTime?.toFixed(3) || "-",
+      reactOps: react.hz?.toFixed(2) || "-",
+      reactTime: react.stats?.mean?.toFixed(3) || "-",
+      webjsxOps: webjsx.hz?.toFixed(2) || "-",
+      webjsxTime: webjsx.stats?.mean?.toFixed(3) || "-",
       comparison: comparison !== null ? comparison.toFixed(1) : "-",
     };
   });
@@ -267,40 +270,10 @@ async function main() {
   console.log(`Running benchmarks with duration: ${duration}s`);
 
   console.log("Running React benchmarks...");
-  const reactOutput = await runCommand("npm", [
-    "run",
-    "react-tests",
-    `--duration=${duration}`,
-  ]);
-  console.log("\nParsing React results...");
-  const reactResults = parseResults(reactOutput);
-  console.log("\nReact Benchmark Results:");
-  console.log("─".repeat(50));
-  reactResults.forEach((result) => {
-    console.log(`Test: ${result.name}`);
-    console.log(`  Operations/sec: ${result.opsPerSec.toFixed(2)}`);
-    console.log(`  Average time: ${result.avgTime.toFixed(3)}ms`);
-    console.log(`  Deviation: ±${result.deviation.toFixed(2)}%`);
-    console.log("─".repeat(50));
-  });
+  const reactResults = await runBrowserBenchmarks("react", duration);
 
   console.log("\nRunning WebJSX benchmarks...");
-  const webjsxOutput = await runCommand("npm", [
-    "run",
-    "webjsx-tests",
-    `--duration=${duration}`,
-  ]);
-  console.log("\nParsing WebJSX results...");
-  const webjsxResults = parseResults(webjsxOutput);
-  console.log("\nWebJSX Benchmark Results:");
-  console.log("─".repeat(50));
-  webjsxResults.forEach((result) => {
-    console.log(`Test: ${result.name}`);
-    console.log(`  Operations/sec: ${result.opsPerSec.toFixed(2)}`);
-    console.log(`  Average time: ${result.avgTime.toFixed(3)}ms`);
-    console.log(`  Deviation: ±${result.deviation.toFixed(2)}%`);
-    console.log("─".repeat(50));
-  });
+  const webjsxResults = await runBrowserBenchmarks("webjsx", duration);
 
   const html = generateHtml(reactResults, webjsxResults);
   await fs.writeFile(outputPath, html);

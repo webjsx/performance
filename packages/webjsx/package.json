@@ -27,7 +27,7 @@
     "build:vite": "vite build", 
     "build": "npm run clean && npm run build:vite && npm run build:tsc",
     "dev": "vite",
-    "preview": "vite preview --port 4173",
+    "preview": "vite preview",
     "benchmark": "node ./dist/cli.js"
   },
   "dependencies": {

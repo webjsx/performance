@@ -58,11 +58,9 @@ export class UpdatesTest extends BaseTestSuite {
         const hue = (styleCounter * 10) % 360;
         const vdom = (
           <div
-            style={{
-              backgroundColor: `hsl(${hue}, 70%, 50%)`,
-              padding: `${10 + (styleCounter % 10)}px`,
-              fontSize: `${14 + (styleCounter % 8)}px`,
-            }}
+            style={`background-color: hsl(${hue}, 70%, 50%); padding: ${
+              10 + (styleCounter % 10)
+            }px; font-size: ${14 + (styleCounter % 8)}px`}
           >
             Dynamic styles test
           </div>

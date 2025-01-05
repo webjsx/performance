@@ -18,7 +18,7 @@
     "http-server": "^14.1.1",
     "puppeteer": "^23.11.1",
     "typescript": "^5.7.2",
-    "vite": "^5.0.12"
+    "vite": "^6.0.7"
   },
   "scripts": {
     "reinstall": "rm -rf node_modules && npm install",
@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "bench-utils": "*",
-    "webjsx": "^0.0.49"
+    "webjsx": "^0.0.51"
   }
 }

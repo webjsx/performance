@@ -12,7 +12,7 @@
     "clean": "npm run clean --workspaces",
     "reinstall-common": "cd packages/bench-utils && rm -rf node_modules && npm install",
     "reinstall-test-packages": "npm run reinstall --workspaces --if-present",
-    "reinstall": "npm run reinstall-common && npm run reinstall-test-packages",
+    "reinstall": "npm run reinstall-common && npm run reinstall-test-packages && npm i",
     "build-common": "cd packages/bench-utils && npm run build",
     "build": "npm run build-common && npm run build --workspaces",
     "react-tests": "cd packages/react && npm run benchmark",

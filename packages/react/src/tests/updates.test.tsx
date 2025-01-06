@@ -19,10 +19,10 @@ export class UpdatesTest extends BaseTestSuite {
   }
 
   async *getAllTests(): AsyncGenerator<TestCase, void, unknown> {
-    // Test 1: Toggle class
+    // Test 1: Toggle class (non-keyed)
     let isActive = false;
     yield {
-      name: "Class toggle updates",
+      name: "Non-keyed class toggle",
       run: () => {
         isActive = !isActive;
         const vdom = (
@@ -34,10 +34,10 @@ export class UpdatesTest extends BaseTestSuite {
       },
     };
 
-    // Test 2: Text content updates
+    // Test 2: Text content updates (non-keyed)
     let counter = 0;
     yield {
-      name: "Text content updates",
+      name: "Non-keyed text content updates",
       run: () => {
         counter++;
         const vdom = <div>Counter value: {counter}</div>;
@@ -45,10 +45,10 @@ export class UpdatesTest extends BaseTestSuite {
       },
     };
 
-    // Test 3: List reordering
+    // Test 3: Simple list reordering with keys
     const baseItems = Array.from({ length: 100 }, (_, i) => i);
     yield {
-      name: "List reordering",
+      name: "Keyed list reordering",
       run: () => {
         const shuffled = [...baseItems].sort(() => Math.random() - 0.5);
         const vdom = (
@@ -62,10 +62,10 @@ export class UpdatesTest extends BaseTestSuite {
       },
     };
 
-    // Test 4: Style updates
+    // Test 4: Style updates (non-keyed)
     let styleCounter = 0;
     yield {
-      name: "Style updates",
+      name: "Non-keyed style updates",
       run: () => {
         styleCounter++;
         const hue = (styleCounter * 10) % 360;
@@ -79,6 +79,86 @@ export class UpdatesTest extends BaseTestSuite {
           >
             Dynamic styles test
           </div>
+        );
+        this.root.render(vdom);
+      },
+    };
+
+    // Test 5: Complex keyed object updates
+    const baseObjects = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      label: `Item ${i}`,
+      values: Array.from({ length: 3 }, (_, j) => ({
+        id: `${i}-${j}`,
+        count: i * j,
+      })),
+    }));
+
+    yield {
+      name: "Keyed nested object updates",
+      run: () => {
+        const updatedObjects = baseObjects.map((obj) => ({
+          ...obj,
+          values: obj.values.map((val) => ({
+            ...val,
+            count: Math.floor(Math.random() * 1000),
+          })),
+        }));
+
+        const vdom = (
+          <div>
+            {updatedObjects.map((obj) => (
+              <div key={obj.id} className="item-container">
+                <h4>{obj.label}</h4>
+                {obj.values.map((val) => (
+                  <span key={val.id} className="value">
+                    Count: {val.count}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+        this.root.render(vdom);
+      },
+    };
+
+    // Test 6: Keyed table row updates
+    const baseRows = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      cols: Array.from({ length: 5 }, (_, j) => ({
+        id: `${i}-${j}`,
+        value: `Cell ${i}-${j}`,
+        status: j % 2 === 0 ? "active" : "inactive",
+      })),
+    }));
+
+    yield {
+      name: "Keyed table updates",
+      run: () => {
+        const updatedRows = baseRows.map((row) => ({
+          ...row,
+          cols: row.cols.map((col) => ({
+            ...col,
+            status: Math.random() > 0.5 ? "active" : "inactive",
+            value: `Cell ${col.id} (${Math.random().toString(36).slice(2, 6)})`,
+          })),
+        }));
+
+        const vdom = (
+          <table>
+            <tbody>
+              {updatedRows.map((row) => (
+                <tr key={row.id}>
+                  {row.cols.map((col) => (
+                    <td key={col.id} className={col.status}>
+                      {col.value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         );
         this.root.render(vdom);
       },

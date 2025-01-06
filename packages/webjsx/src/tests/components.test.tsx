@@ -16,7 +16,9 @@ class ComplexComponent extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    this.render();
+    if (this.isConnected) {
+      this.render();
+    }
   }
 
   connectedCallback() {

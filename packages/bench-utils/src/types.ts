@@ -18,8 +18,6 @@ export interface TestSuiteOptions {
    * @default 2
    */
   duration?: number;
-  /** Callback when a test starts */
-  onTestStart?: (testName: string) => void;
 }
 
 export interface TestSuite {
@@ -32,7 +30,10 @@ export interface TestSuite {
   /**
    * Runs the specified test case and returns the benchmark result
    */
-  runTest(testCase: TestCase, options: TestSuiteOptions): BenchmarkResult;
+  runTest(
+    testCase: TestCase,
+    options: TestSuiteOptions,
+  ): BenchmarkResult;
 }
 
 export interface BenchmarkOptions {

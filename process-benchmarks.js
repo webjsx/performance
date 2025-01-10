@@ -6,30 +6,6 @@ import os from "os";
 import open from "open";
 import puppeteer from "puppeteer";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-async function runCommand(command, args, cwd = process.cwd()) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, {
-      cwd,
-      stdio: ["ignore", "pipe", "inherit"],
-    });
-    let output = "";
-
-    proc.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    proc.on("close", (code) => {
-      if (code === 0) {
-        resolve(output);
-      } else {
-        reject(new Error(`Process exited with code ${code}`));
-      }
-    });
-  });
-}
-
 async function runBrowserBenchmarks(framework, port, duration, testFilter) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();

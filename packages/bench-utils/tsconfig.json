@@ -9,6 +9,6 @@
     "rootDirs": ["./src"],
     "composite": false
   },
-  "include": ["src/**/*", "src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

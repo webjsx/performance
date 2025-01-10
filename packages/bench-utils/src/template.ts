@@ -228,8 +228,9 @@ export function setupBenchmarkUI() {
       parseFloat(
         (document.getElementById("duration") as HTMLInputElement).value
       ) || 2;
-    const startTime = performance.now();
     const selectedTest = testSelector.value;
+
+    const allTestsStartTime = performance.now();
 
     try {
       window.benchmarkResults.allResults = [];
@@ -239,25 +240,26 @@ export function setupBenchmarkUI() {
         console.log("Running suite:", suite.name);
 
         for await (const testCase of suite.getAllTests()) {
-          // Skip tests that don't match the selection
           if (selectedTest && testCase.name !== selectedTest) {
             continue;
           }
 
+          const startTime = performance.now();
           const result = suite.runTest(testCase, {
             duration,
-            onTestStart: (testName: string) => {
-              updateCurrentTest(testName);
-            },
           });
+
           const elapsed = (performance.now() - startTime) / 1000;
           appendResult(result, elapsed);
-          // Let the UI update
+
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
 
-      const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+      const totalTime = (
+        (performance.now() - allTestsStartTime) /
+        1000
+      ).toFixed(2);
       appContainer!.innerHTML = `<div class="completed-message">✓ Completed in ${totalTime}s</div>`;
     } catch (error) {
       console.error("Test error:", error);

@@ -148,5 +148,32 @@ export class UpdatesTest extends BaseTestSuite {
         webjsx.applyDiff(this.container, vdom);
       },
     };
+
+    // Test 7: Selective updates in large list
+    let renderCount = 0;
+    yield {
+      name: "Selective updates in 10000 items",
+      run: () => {
+        if (renderCount === 11) {
+          renderCount = 0;
+          return;
+        }
+
+        const items = Array.from({ length: 10000 }, (_, i) => {
+          const shouldUpdate = renderCount > 0 && i % 10 === renderCount - 1;
+          return (
+            <div key={i} id={`item-${i}`}>
+              Item {i} {shouldUpdate ? `(updated at ${performance.now()})` : ""}
+            </div>
+          );
+        });
+
+        webjsx.applyDiff(
+          this.container,
+          <div className="large-list">{items}</div>
+        );
+        renderCount++;
+      },
+    };
   }
 }

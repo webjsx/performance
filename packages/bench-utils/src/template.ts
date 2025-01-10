@@ -214,15 +214,6 @@ export function setupBenchmarkUI() {
     window.benchmarkResults.latestResults = result;
   }
 
-  function updateCurrentTest(name: string) {
-    appContainer!.innerHTML = `
-      <div class="running-message">
-        Running test:<br>
-        ${name}
-      </div>
-    `;
-  }
-
   async function runAllTests(suites: TestSuite[]) {
     const duration =
       parseFloat(

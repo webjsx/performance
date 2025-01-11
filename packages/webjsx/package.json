@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "bench-utils": "*",
-    "webjsx": "^0.0.51"
+    "webjsx": "^0.0.64"
   }
 }

@@ -5,7 +5,6 @@
   "workspaces": [
     "packages/bench-utils",
     "packages/webjsx",
-    "packages/magic-loop",
     "packages/react"
   ],
   "scripts": {

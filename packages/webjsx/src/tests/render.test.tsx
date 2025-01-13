@@ -6,9 +6,9 @@ export class RenderTest extends BaseTestSuite {
   name = "WebJSX Basic Render Tests";
 
   async *getAllTests(): AsyncGenerator<TestCase, void, unknown> {
-    // Test 1: Single div with cleanup
+    // Test 1: Single div with no changes
     yield {
-      name: "Single div render (with cleanup)",
+      name: "Single div render (no changes)",
       run: () => {
         const vdom = <div>Hello World</div>;
         webjsx.applyDiff(this.container, vdom);
@@ -18,7 +18,7 @@ export class RenderTest extends BaseTestSuite {
     // Test 2: Single div without cleanup
     let counter = 0;
     yield {
-      name: "Single div render (no cleanup)",
+      name: "Single div render (with content changes)",
       run: () => {
         counter++;
         const vdom = <div>Hello World {counter}</div>;

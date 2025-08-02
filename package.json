@@ -18,11 +18,11 @@
     "webjsx-tests": "cd packages/webjsx && npm run benchmark"
   },
   "dependencies": {
-    "open": "^10.1.0"
+    "open": "^10.2.0"
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",
     "benchmark": "^2.1.4",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.2"
   }
 }

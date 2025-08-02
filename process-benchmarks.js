@@ -87,8 +87,16 @@ async function runBrowserBenchmarks(framework, port, duration, testFilter) {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  } catch (error) {
+    console.error(`[${framework}] Error during benchmark execution:`, error);
+    throw error;
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } catch (closeError) {
+      console.warn(`[${framework}] Warning: Error closing browser:`, closeError.message);
+      // Don't throw here - we already have our results
+    }
   }
 
   return results;
@@ -316,13 +324,19 @@ async function main() {
     }
 
     console.log(`\nRunning ${fw} benchmarks...`);
-    const results = await runBrowserBenchmarks(
-      fw,
-      FRAMEWORKS[fw].port,
-      duration,
-      testFilter
-    );
-    allResults = allResults.concat(results);
+    try {
+      const results = await runBrowserBenchmarks(
+        fw,
+        FRAMEWORKS[fw].port,
+        duration,
+        testFilter
+      );
+      allResults = allResults.concat(results);
+    } catch (error) {
+      console.error(`\nError running ${fw} benchmarks:`, error.message);
+      // Continue with next framework instead of failing completely
+      continue;
+    }
   }
 
   const html = generateHtml(allResults);

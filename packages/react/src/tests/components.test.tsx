@@ -33,8 +33,10 @@ export class ComponentsTest extends BaseTestSuite {
   }
 
   protected cleanup() {
-    this.root.unmount();
-    this.container.innerHTML = "";
+    // Don't create a new root on every cleanup - just clear the content
+    this.root.render(null);
+    super.cleanup();
+    // Recreate the root with the new container
     this.root = ReactDOM.createRoot(this.container);
   }
 
